@@ -127,9 +127,9 @@ cv::Mat TemporalFiltering(vector<cv::Mat> input)
 
 
 
-vector<double> Calc_ROI_Average(cv::Mat Perfusion_Image, vector<ROI> The_List_Of_ROIs)
+QVector<double> Calc_ROI_Average(cv::Mat Perfusion_Image, vector<ROI> The_List_Of_ROIs)
 {
-	vector<double> ROI_Averages;
+	QVector<double> ROI_Averages;
 
 	// Calculate the average of each ROI i in the vector.
 	for (int i = 0; i < The_List_Of_ROIs.size(); i++)
@@ -137,7 +137,7 @@ vector<double> Calc_ROI_Average(cv::Mat Perfusion_Image, vector<ROI> The_List_Of
 		vector<int> Location = The_List_Of_ROIs.at(i).Get_ROI_Location();
 		vector<int> Region = The_List_Of_ROIs.at(i).Get_ROI_Region();
 		Mat ROI_Image = Perfusion_Image(Rect(Location.at(0), Location.at(1), Region.at(0), Region.at(1)));
-		ROI_Averages.push_back(mean(ROI_Image).val[0]);
+		ROI_Averages.append(mean(ROI_Image).val[0]);
 	}
 	return(ROI_Averages);
 }

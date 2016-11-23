@@ -7,6 +7,7 @@ This document contains declarations of all functions not bound to a specific cla
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv/cv.h>
 
+#include <QVector>
 #include <iostream>
 #include <chrono>
 #include <time.h>
@@ -28,7 +29,7 @@ cv::Mat CalculateContrast2(cv::Mat input, int lascaSize, double Calib_Still, dou
 
 cv::Mat TemporalFiltering(vector<cv::Mat> input);
 
-std::vector<double> Calc_ROI_Average(Mat Perfusion_Image, std::vector<ROI> The_List_Of_ROIs);
+QVector<double> Calc_ROI_Average(Mat Perfusion_Image, std::vector<ROI> The_List_Of_ROIs);
 
 cv::Mat one_divided_by_kontrast(cv::Mat input);
 

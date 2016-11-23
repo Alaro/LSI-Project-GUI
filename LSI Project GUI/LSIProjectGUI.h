@@ -85,7 +85,7 @@ private:
 	int graph_update;
 	void set_exposure(int);
 	bool laser_switch = false;
-	QVector<qreal> b;
+	QVector<QVector<qreal>> Multiple_ROI_Averages;
 	vector<Mat> Contrast_Images;
 	void Add_Contrast_Image(Mat New_Cont_Image);
 	Mat LSIProjectGUI::Help_Average_Images_RT(int Num_Images);
@@ -113,8 +113,8 @@ private:
 	void on_AmbL_Button_clicked();
 	void on_laserButton_clicked();
 	// These two calibration buttons are needed in the GUI:
-	//void on_CalibrateStill_Button_clicked();
-	//void on_CalibrateMoving_Button_clicked();
+	void on_CalibrateStill_Button_clicked();
+	void on_CalibrateMoving_Button_clicked();
 
 	//
 	void mousePressEvent(QMouseEvent *event);
@@ -130,5 +130,5 @@ private:
 	void laser_OF();
 	//Real time hanterarn
 	private slots:
-		void makePlot(QVector<qreal>);
+		void makePlot(QVector<qreal>); // not needed if we don't use makePlot
 };

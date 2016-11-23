@@ -37,7 +37,7 @@ LSIProjectGUI::LSIProjectGUI(QWidget *parent)
 	//port = new QSerialPort(this);
 
 	
-	// give the axes some labels:
+	// give the graph axes some labels:
 	ui.customPlot->xAxis->setLabel("Time");
 	ui.customPlot->yAxis->setLabel("Mean Contrast");
 	ui.customPlot->xAxis->setRange(x_min, x_max);
@@ -79,28 +79,28 @@ void LSIProjectGUI::set_exposure(int time)
 void LSIProjectGUI::take_laser_image()
 {
 	laser_ON();
-	//camera.Connect(0);
-	//camera.StartCapture();
-	//camera.RetrieveBuffer(&rawImage);
-	//rawImage.Convert(FlyCapture2::PIXEL_FORMAT_BGR, &rgbImage);
-	//unsigned int rowBytes = (double)rgbImage.GetReceivedDataSize() / (double)rgbImage.GetRows(); //Converts the Image to Mat
-	//Main_Image_CV = cv::Mat(rgbImage.GetRows(), rgbImage.GetCols(), CV_8UC3, rgbImage.GetData(), rowBytes);
-	webcam >> Main_Image_CV;
-	webcam >> Main_Image_CV;
+	camera.Connect(0);
+	camera.StartCapture();
+	camera.RetrieveBuffer(&rawImage);
+	rawImage.Convert(FlyCapture2::PIXEL_FORMAT_BGR, &rgbImage);
+	unsigned int rowBytes = (double)rgbImage.GetReceivedDataSize() / (double)rgbImage.GetRows(); //Converts the Image to Mat
+	Main_Image_CV = cv::Mat(rgbImage.GetRows(), rgbImage.GetCols(), CV_8UC3, rgbImage.GetData(), rowBytes);
+	/*webcam >> Main_Image_CV;
+	webcam >> Main_Image_CV;*/
 	//remove_ambient_ligth_and_black_image();
 	laser_OF();
 }
 
 void LSIProjectGUI::take_ambient_light_image()
 {
-	//camera.Connect(0);
-	//camera.StartCapture();
-	//camera.RetrieveBuffer(&rawImage);
-	//rawImage.Convert(FlyCapture2::PIXEL_FORMAT_BGR, &rgbImage);
-	//unsigned int rowBytes = (double)rgbImage.GetReceivedDataSize() / (double)rgbImage.GetRows(); //Converts the Image to Mat
-	//Main_Image_CV_for_ambient_light = cv::Mat(rgbImage.GetRows(), rgbImage.GetCols(), CV_8UC3, rgbImage.GetData(), rowBytes);
-	webcam >> Main_Image_CV;
-	webcam >> Main_Image_CV;
+	camera.Connect(0);
+	camera.StartCapture();
+	camera.RetrieveBuffer(&rawImage);
+	rawImage.Convert(FlyCapture2::PIXEL_FORMAT_BGR, &rgbImage);
+	unsigned int rowBytes = (double)rgbImage.GetReceivedDataSize() / (double)rgbImage.GetRows(); //Converts the Image to Mat
+	Main_Image_CV_for_ambient_light = cv::Mat(rgbImage.GetRows(), rgbImage.GetCols(), CV_8UC3, rgbImage.GetData(), rowBytes);
+	/*webcam >> Main_Image_CV;
+	webcam >> Main_Image_CV;*/
 
 	//remove_ambient_ligth_and_black_image();
 	if (!Black_im.empty()) // Removes the black image when taken.
@@ -205,7 +205,7 @@ void LSIProjectGUI::update()
 	}
 	//Fel att ta in frame objekt nu...
 
-	//vector<double> averageROI = Calc_ROI_Average(Main_Image, List_Of_ROI);
+
 	if (Is_ROI_Button_Is_Pressed)
 	{
 		QPainter painter(&Main_Image);
@@ -215,16 +215,53 @@ void LSIProjectGUI::update()
 	}
 
 
-	// works for one graph now, needs loop for several graphs
+	// plots graphs
 	if (!List_Of_ROI.empty()) // prevents program from crashing if vector is empty
 	{
 		graph_update++;
-		vector<double> ROI_Averages = Calc_ROI_Average(Main_Image_CV, List_Of_ROI); // Main_Image_CV not right perfusion image yet
+		// calculates average for all ROIs and saves them in a vector
+		// gets overwritten until graph_update == 5
+		QVector<double> ROI_Averages = Calc_ROI_Average(Main_Image_CV, List_Of_ROI); // Main_Image_CV not right perfusion image yet
+		QVector<qreal> ROI_Averages_qreal;
 
-		if (graph_update == 5)
+		for (int i = 0; i < ROI_Averages.size(); i++)
 		{
-			b.append(ROI_Averages.at(0));
-			makePlot(b);
+			// saves ROI Averages before they get overwritten
+			QVector<qreal> firstvector;
+			firstvector.append(ROI_Averages.at(0));
+			Multiple_ROI_Averages.append(firstvector);
+
+			ROI_Averages_qreal.append(ROI_Averages.at(i)); // makes QVector out of vector
+			Multiple_ROI_Averages[i].append(ROI_Averages_qreal.at(i));
+		}
+
+
+		if (graph_update == 5) // after 5*200ms = 1s graphs update
+		{
+			//for (int k = 0; k < ROI_Averages.size(); k++) // loops through ROI vector
+			for (int k = 0; k < List_Of_ROI.size(); k++)
+			{
+				QVector<qreal> x(Multiple_ROI_Averages[k].count());
+				for (int i = 0; i < Multiple_ROI_Averages[k].count(); ++i)
+				{
+					x[i] = i;
+				}
+
+				QVector<QColor> ROI_Colors{ QColor("red"), QColor("darkBlue"), QColor("Yellow"), QColor("cyan"), QColor("darkMagenta"), QColor("green"), QColor("darkRed"), QColor("blue"), QColor("darkYellow"), QColor("darkCyan"), QColor("magenta"), QColor("darkGreen") };
+				int color = List_Of_ROI.at(k).ROI_Colour - 1;
+
+				ui.customPlot->addGraph();
+				ui.customPlot->graph(k)->setData(x, Multiple_ROI_Averages[k]);
+				ui.customPlot->graph(k)->setPen(QPen(ROI_Colors.at(color)));
+				ui.customPlot->replot();
+				ui.customPlot->xAxis->setRange(x_min, x_max);
+
+				if (k == 0 & Multiple_ROI_Averages[k].count() >= 6)
+				{
+					x_min++;
+					x_max++;
+				}
+			}
 			graph_update = 0;
 		}
 	}
@@ -255,6 +292,9 @@ void LSIProjectGUI::on_removeROIButton_clicked()
 
 		List_Of_ROI.erase(List_Of_ROI.begin() + selectedROI); 
 		delete ui.listROI->takeItem(selectedROI); 
+
+		// removes graph
+		Multiple_ROI_Averages.erase(Multiple_ROI_Averages.begin() + selectedROI);
 	}
 }
 
@@ -423,7 +463,7 @@ void LSIProjectGUI::on_exposuretime_valueChanged()
 	set_exposure(t);
 }
 
-void LSIProjectGUI::makePlot(QVector<qreal> a)
+void LSIProjectGUI::makePlot(QVector<qreal> a) // we don't use this function any more at the moment
 {
 	// generate some data:
 	QVector<qreal> x(a.count()); 
@@ -521,7 +561,7 @@ void LSIProjectGUI::on_patientName_textEdited(const QString &text)
 }
 
 
-/*void LSIProjectGUI::on_CalibrateStill_Button_clicked()
+void LSIProjectGUI::on_CalibrateStill_Button_clicked()
 {
 	Mat Calib_Image_Still = Help_Average_Images_RT(10);
 	if (!Black_im.empty()) // Removes the black image when taken.
@@ -535,9 +575,9 @@ void LSIProjectGUI::on_patientName_textEdited(const QString &text)
 
 	Calib_Image_Still = CalculateContrast2(Calib_Image_Still, lasca_area, 0, 0);
 	Calib_Still = mean(Calib_Image_Still).val[0];
-}*/
+}
 
-/*void LSIProjectGUI::on_CalibrateMoving_Button_clicked()
+void LSIProjectGUI::on_CalibrateMoving_Button_clicked()
 {
 	Mat Calib_Image_Moving;
 	camera.RetrieveBuffer(&rawImage);
@@ -557,4 +597,4 @@ void LSIProjectGUI::on_patientName_textEdited(const QString &text)
 
 	Calib_Image_Moving = CalculateContrast2(Calib_Image_Moving, lasca_area, 0, 0);
 	Calib_Moving = mean(Calib_Image_Moving).val[0];
-}*/
+}
